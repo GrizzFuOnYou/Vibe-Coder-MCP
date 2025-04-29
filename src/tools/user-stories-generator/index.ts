@@ -11,32 +11,6 @@ import { AppError, ApiError, ConfigurationError, ToolExecutionError } from '../.
 import { jobManager, JobStatus } from '../../services/job-manager/index.js'; // Import job manager & status
 import { sseNotifier } from '../../services/sse-notifier/index.js'; // Import SSE notifier
 
-// Helper function to get the base output directory
-function getBaseOutputDir(): string {
-  // Prioritize environment variable, resolve to ensure it's treated as an absolute path if provided
-  // Fallback to default relative to CWD
-  return process.env.VIBE_CODER_OUTPUT_DIR
-    ? path.resolve(process.env.VIBE_CODER_OUTPUT_DIR)
-    : path.join(process.cwd(), 'workflow-agent-files');
-}
-
-// Define tool-specific directory using the helper
-const USER_STORIES_DIR = path.join(getBaseOutputDir(), 'user-stories-generator');
-
-// Initialize directories if they don't exist
-export async function initDirectories() {
-  const baseOutputDir = getBaseOutputDir();
-  try {
-    await fs.ensureDir(baseOutputDir); // Ensure base directory exists
-    const toolDir = path.join(baseOutputDir, 'user-stories-generator');
-    await fs.ensureDir(toolDir); // Ensure tool-specific directory exists
-    logger.debug(`Ensured user stories directory exists: ${toolDir}`);
-  } catch (error) {
-    logger.error({ err: error, path: baseOutputDir }, `Failed to ensure base output directory exists for user-stories-generator.`);
-    // Decide if we should re-throw or just log. Logging might be safer.
-  }
-}
-
 // User stories generator-specific system prompt
 const USER_STORIES_SYSTEM_PROMPT = `
 # User Stories Generator - Using Research Context
@@ -148,7 +122,6 @@ export const generateUserStories: ToolExecutor = async (
   // ---> Step 2.5(US).4: Wrap Logic in Async Block <---
   setImmediate(async () => {
     const logs: string[] = []; // Keep logs specific to this job execution
-    let filePath: string = ''; // Define filePath in outer scope for catch block
 
     // ---> Step 2.5(US).7: Update Final Result/Error Handling (Try Block Start) <---
     try {
@@ -156,15 +129,6 @@ export const generateUserStories: ToolExecutor = async (
       jobManager.updateJobStatus(jobId, JobStatus.RUNNING, 'Starting user stories generation process...');
       sseNotifier.sendProgress(sessionId, jobId, JobStatus.RUNNING, 'Starting user stories generation process...');
       logs.push(`[${new Date().toISOString()}] Starting user stories generation for: ${productDescription.substring(0, 50)}...`);
-
-      // Ensure directories are initialized before writing
-      await initDirectories();
-
-    // Generate a filename for storing the user stories (using the potentially configured USER_STORIES_DIR)
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const sanitizedName = productDescription.substring(0, 30).toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const filename = `${timestamp}-${sanitizedName}-user-stories.md`;
-      filePath = path.join(USER_STORIES_DIR, filename); // Assign to outer scope variable
 
       // ---> Step 2.5(US).6: Add Progress Updates (Research Start) <---
       logger.info({ jobId, inputs: { productDescription: productDescription.substring(0, 50) } }, "User Stories Generator: Starting pre-generation research...");
@@ -247,22 +211,10 @@ export const generateUserStories: ToolExecutor = async (
     // Format the user stories (already should be formatted by LLM, just add timestamp)
     const formattedResult = `${userStoriesMarkdown}\n\n_Generated: ${new Date().toLocaleString()}_`;
 
-    // ---> Step 2.5(US).6: Add Progress Updates (Saving File) <---
-    logger.info({ jobId }, `Saving user stories to ${filePath}...`);
-    jobManager.updateJobStatus(jobId, JobStatus.RUNNING, `Saving user stories to file...`);
-    sseNotifier.sendProgress(sessionId, jobId, JobStatus.RUNNING, `Saving user stories to file...`);
-    logs.push(`[${new Date().toISOString()}] Saving user stories to ${filePath}.`);
-
-    // Save the result
-    await fs.writeFile(filePath, formattedResult, 'utf8');
-    logger.info({ jobId }, `User stories generated and saved to ${filePath}`);
-    logs.push(`[${new Date().toISOString()}] User stories saved successfully.`);
-    sseNotifier.sendProgress(sessionId, jobId, JobStatus.RUNNING, `User stories saved successfully.`);
-
     // ---> Step 2.5(US).7: Update Final Result/Error Handling (Set Success Result) <---
     const finalResult: CallToolResult = {
       // Include file path in success message
-      content: [{ type: "text", text: `User stories generated successfully and saved to: ${filePath}\n\n${formattedResult}` }],
+      content: [{ type: "text", text: `User stories generated successfully.\n\n${formattedResult}` }],
       isError: false
     };
     jobManager.setJobResult(jobId, finalResult);
@@ -280,7 +232,7 @@ export const generateUserStories: ToolExecutor = async (
       if (error instanceof AppError) {
         appError = error;
       } else {
-        appError = new ToolExecutionError(`Failed to generate user stories: ${errorMsg}`, { params, filePath }, cause);
+        appError = new ToolExecutionError(`Failed to generate user stories: ${errorMsg}`, { params }, cause);
       }
 
       const mcpError = new McpError(ErrorCode.InternalError, appError.message, appError.context);

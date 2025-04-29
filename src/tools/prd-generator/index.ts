@@ -12,32 +12,6 @@ import { AppError, ApiError, ConfigurationError, ToolExecutionError } from '../.
 import { jobManager, JobStatus } from '../../services/job-manager/index.js'; // Import job manager & status
 import { sseNotifier } from '../../services/sse-notifier/index.js'; // Import SSE notifier
 
-// Helper function to get the base output directory
-function getBaseOutputDir(): string {
-  // Prioritize environment variable, resolve to ensure it's treated as an absolute path if provided
-  // Fallback to default relative to CWD
-  return process.env.VIBE_CODER_OUTPUT_DIR
-    ? path.resolve(process.env.VIBE_CODER_OUTPUT_DIR)
-    : path.join(process.cwd(), 'workflow-agent-files');
-}
-
-// Define tool-specific directory using the helper
-const PRD_DIR = path.join(getBaseOutputDir(), 'prd-generator');
-
-// Initialize directories if they don't exist
-export async function initDirectories() {
-  const baseOutputDir = getBaseOutputDir();
-  try {
-    await fs.ensureDir(baseOutputDir); // Ensure base directory exists
-    const toolDir = path.join(baseOutputDir, 'prd-generator');
-    await fs.ensureDir(toolDir); // Ensure tool-specific directory exists
-    logger.debug(`Ensured PRD directory exists: ${toolDir}`);
-  } catch (error) {
-    logger.error({ err: error, path: baseOutputDir }, `Failed to ensure base output directory exists for prd-generator.`);
-    // Decide if we should re-throw or just log. Logging might be safer.
-  }
-}
-
 // PRD-specific system prompt (Exported for testing)
 export const PRD_SYSTEM_PROMPT = `
 # ROLE & GOAL
@@ -180,7 +154,7 @@ export const generatePRD: ToolExecutor = async (
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const sanitizedName = productDescription.substring(0, 30).toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const filename = `${timestamp}-${sanitizedName}-prd.md`;
-      filePath = path.join(PRD_DIR, filename); // Assign to outer scope variable
+      filePath = path.join(process.cwd(), filename); // Assign to outer scope variable
 
       // ---> Step 2.5(PRD).6: Add Progress Updates (Research Start) <---
       logger.info({ jobId, inputs: { productDescription: productDescription.substring(0, 50) } }, "PRD Generator: Starting pre-generation research...");

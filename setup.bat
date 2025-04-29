@@ -67,6 +67,24 @@ if not exist ".env" (
     echo .env file already exists. Skipping creation. (Ensure it contains OPENROUTER_API_KEY)
 )
 
+REM Update MCP Servers to add Vibe Coder Configuration
+echo Updating MCP Servers to add Vibe Coder Configuration...
+call npm run update-mcp-servers
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Failed to update MCP Servers. Check npm logs above.
+    exit /b 1
+)
+echo MCP Servers updated successfully.
+
+REM Include setup script in user's settings.json
+echo Including setup script in user's settings.json...
+powershell -Command "& { $settingsPath = [System.IO.Path]::Combine($env:APPDATA, 'Code', 'User', 'settings.json'); if (Test-Path $settingsPath) { $settings = Get-Content $settingsPath | Out-String | ConvertFrom-Json; $settings.'vibeCoder.setupScript' = 'setup.bat'; $settings | ConvertTo-Json -Depth 100 | Set-Content $settingsPath; Write-Host 'Setup script included in settings.json.' } else { Write-Error 'settings.json not found. Please include setup script manually.'; exit 1 } }"
+if %ERRORLEVEL% neq 0 (
+    echo ERROR: Failed to include setup script in settings.json. Check PowerShell logs above.
+    exit /b 1
+)
+echo Setup script included in settings.json successfully.
+
 echo.
 echo Setup script completed successfully!
 echo ==================================================

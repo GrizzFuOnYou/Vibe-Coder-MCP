@@ -38,6 +38,69 @@
           "Development Rules generated based on description and generated user stories."
         ]
       }
+    },
+    "autoGeneratePRD": {
+      "description": "Automatically generates a Product Requirements Document (PRD) based on a product description.",
+      "inputSchema": {
+        "productDescription": "string"
+      },
+      "steps": [
+        {
+          "id": "step1_generate_prd",
+          "toolName": "generate-prd",
+          "params": {
+            "productDescription": "{workflow.input.productDescription}"
+          }
+        }
+      ],
+      "output": {
+        "summary": "Workflow 'autoGeneratePRD' completed. PRD generated and saved.",
+        "details": [
+          "PRD generated based on product description."
+        ]
+      }
+    },
+    "autoGenerateRules": {
+      "description": "Automatically generates development rules based on a product description.",
+      "inputSchema": {
+        "productDescription": "string"
+      },
+      "steps": [
+        {
+          "id": "step1_generate_rules",
+          "toolName": "generate-rules",
+          "params": {
+            "productDescription": "{workflow.input.productDescription}"
+          }
+        }
+      ],
+      "output": {
+        "summary": "Workflow 'autoGenerateRules' completed. Development rules generated and saved.",
+        "details": [
+          "Development rules generated based on product description."
+        ]
+      }
+    },
+    "autoGenerateUserStories": {
+      "description": "Automatically generates user stories based on a product description.",
+      "inputSchema": {
+        "productDescription": "string"
+      },
+      "steps": [
+        {
+          "id": "step1_generate_user_stories",
+          "toolName": "generate-user-stories",
+          "params": {
+            "productDescription": "{workflow.input.productDescription}"
+          }
+        }
+      ],
+      "output": {
+        "summary": "Workflow 'autoGenerateUserStories' completed. User stories generated and saved.",
+        "details": [
+          "User stories generated based on product description."
+        ]
+      }
     }
   }
 }

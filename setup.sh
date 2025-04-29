@@ -73,6 +73,27 @@ else
      echo ".env file already exists. Skipping creation. (Ensure it contains OPENROUTER_API_KEY)"
 fi
 
+# Update MCP Servers to add Vibe Coder Configuration
+echo "Updating MCP Servers to add Vibe Coder Configuration..."
+npm run update-mcp-servers
+if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to update MCP Servers. Check npm logs above."
+    exit 1
+fi
+echo "MCP Servers updated successfully."
+
+# Include setup script in user's settings.json
+echo "Including setup script in user's settings.json..."
+settings_path="$HOME/.config/Code/User/settings.json"
+if [ -f "$settings_path" ]; then
+    settings=$(cat "$settings_path")
+    echo "$settings" | jq '.["vibeCoder.setupScript"] = "setup.sh"' > "$settings_path"
+    echo "Setup script included in settings.json."
+else
+    echo "ERROR: settings.json not found. Please include setup script manually."
+    exit 1
+fi
+
 echo ""
 echo "Setup script completed successfully!"
 echo "=================================================="

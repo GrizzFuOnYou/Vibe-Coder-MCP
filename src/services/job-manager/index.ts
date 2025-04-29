@@ -1,9 +1,8 @@
-// src/services/job-manager/index.ts
 import { randomUUID } from 'crypto';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import logger from '../../logger.js';
 // Import sseNotifier here later when it exists to notify on status/result changes
-// import { sseNotifier } from '../sse-notifier/index.js';
+import { sseNotifier } from '../sse-notifier/index.js';
 
 /**
  * Represents the possible statuses of a background job.
@@ -55,8 +54,7 @@ class JobManager {
     };
     this.jobs.set(jobId, newJob);
     logger.info({ jobId, toolName }, `Created new background job.`);
-    // TODO: Notify via SSE later
-    // sseNotifier.sendProgress(sessionId, jobId, JobStatus.PENDING, 'Job created');
+    sseNotifier.sendProgress('auto-session', jobId, JobStatus.PENDING, 'Job created');
     return jobId;
   }
 
@@ -89,15 +87,13 @@ class JobManager {
         // Optionally return false or allow update
     }
 
-
     job.status = status;
     job.updatedAt = Date.now();
     if (progressMessage !== undefined) {
       job.progressMessage = progressMessage;
     }
     logger.info({ jobId, status, progressMessage }, `Updated job status.`);
-    // TODO: Notify via SSE later
-    // sseNotifier.sendProgress(sessionId, jobId, status, progressMessage);
+    sseNotifier.sendProgress('auto-session', jobId, status, progressMessage);
     return true;
   }
 
@@ -127,8 +123,7 @@ class JobManager {
     job.progressMessage = result.isError ? 'Job failed' : 'Job completed successfully'; // Set final message
 
     logger.info({ jobId, finalStatus: job.status }, `Set final job result.`);
-    // TODO: Notify via SSE later
-    // sseNotifier.sendProgress(sessionId, jobId, job.status, job.progressMessage);
+    sseNotifier.sendProgress('auto-session', jobId, job.status, job.progressMessage);
     return true;
   }
 

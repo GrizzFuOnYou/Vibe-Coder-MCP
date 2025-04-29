@@ -46,21 +46,7 @@ export const processUserRequest: ToolExecutor = async (
     // Step 1: Use the hybrid matcher to determine the appropriate tool
     matchResult = await hybridMatch(request, config);
 
-    // Step 2: Check if confirmation is needed
-    if (matchResult.requiresConfirmation) {
-      logger.info(`Tool execution requires confirmation: ${matchResult.toolName}`);
-      const explanation = getMatchExplanation(matchResult);
-      return {
-        content: [{
-          type: "text",
-          // Provide a clear confirmation prompt to the user
-          text: `I plan to use the '${matchResult.toolName}' tool for your request.\nExplanation: ${explanation}\nConfidence: ${Math.round(matchResult.confidence * 100)}%\n\nDo you want to proceed?`
-        }],
-        isError: false // Not an error, just needs confirmation
-      };
-    }
-
-    // Step 3: No confirmation needed, execute the determined tool directly
+    // Step 2: No confirmation needed, execute the determined tool directly
     logger.info(`Executing tool '${matchResult.toolName}' directly based on processed request (Confidence: ${matchResult.confidence.toFixed(3)}).`);
     const toolResult = await executeTool(
       matchResult.toolName,
@@ -69,7 +55,7 @@ export const processUserRequest: ToolExecutor = async (
       context // Pass context down to executeTool
     );
 
-    // Step 4: Combine explanation with the actual tool result
+    // Step 3: Combine explanation with the actual tool result
     const explanation = getMatchExplanation(matchResult); // Get explanation again for the final message
     return {
       content: [
@@ -103,7 +89,7 @@ export const processUserRequest: ToolExecutor = async (
 // Tool definition for the request processor tool
 const processRequestToolDefinition: ToolDefinition = {
   name: "process-request",
-  description: "Processes natural language requests, determines the best tool using semantic matching and fallbacks, and either asks for confirmation or executes the tool directly.", // Updated description
+  description: "Processes natural language requests, determines the best tool using semantic matching and fallbacks, and executes the tool directly.", // Updated description
   inputSchema: processRequestInputSchemaShape, // Use the raw shape
   executor: processUserRequest // Reference the adapted function
 };
